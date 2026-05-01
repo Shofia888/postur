@@ -56,18 +56,28 @@ export default function App() {
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
   
   const getDayKey = (w: number, d: number) => `w${w}_d${d}`;
-  const getDayData = (w: number, d: number): DayData => data[getDayKey(w, d)] || initDay(w);
+  const getDayData = (w: number, d: number): DayData => {
+    const dData = data[getDayKey(w, d)];
+    const wData = WEEKS[w];
+    if (!dData || !dData.s1 || !dData.s2 || !dData.habits || !wData) return initDay(w);
+    if (dData.s1.length !== wData.section1.length || dData.s2.length !== wData.section2.length) return initDay(w);
+    return dData;
+  };
   const setDayData = (w: number, d: number, dData: DayData) => {
     setData(prev => ({ ...prev, [getDayKey(w, d)]: dData }));
   };
 
   const calcDayProgress = (w: number, d: number) => {
-    const dData = getDayData(w, d);
-    const wData = WEEKS[w];
-    let total = HABITS.length, done = dData.habits.filter(Boolean).length;
-    wData.section1.forEach((e, i) => { total += e.sets; done += dData.s1[i].filter(Boolean).length; });
-    wData.section2.forEach((e, i) => { total += e.sets; done += dData.s2[i].filter(Boolean).length; });
-    return total === 0 ? 0 : Math.round((done / total) * 100);
+    try {
+      const dData = getDayData(w, d);
+      const wData = WEEKS[w];
+      let total = HABITS.length, done = dData.habits.filter(Boolean).length;
+      wData.section1.forEach((e, i) => { total += e.sets; done += (dData.s1[i] || []).filter(Boolean).length; });
+      wData.section2.forEach((e, i) => { total += e.sets; done += (dData.s2[i] || []).filter(Boolean).length; });
+      return total === 0 ? 0 : Math.round((done / total) * 100);
+    } catch {
+      return 0;
+    }
   };
 
   const curData = getDayData(week, day);
@@ -90,7 +100,14 @@ export default function App() {
           </div>
           <div className="bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2 flex flex-col items-center">
             <span className="font-bold text-2xl leading-none">
-              {Object.keys(data).filter(k => k.startsWith('w') && calcDayProgress(parseInt(k[1]), parseInt(k[4])) === 100).length}
+              {Object.keys(data).filter(k => {
+                const match = k.match(/^w(\d+)_d(\d+)$/);
+                if (!match) return false;
+                const wIdx = parseInt(match[1]);
+                const dIdx = parseInt(match[2]);
+                if (wIdx < 0 || wIdx >= WEEKS.length) return false;
+                return calcDayProgress(wIdx, dIdx) === 100;
+              }).length}
             </span>
             <span className="text-[10px] uppercase font-bold tracking-wider opacity-90 mt-1">Selesai</span>
           </div>
@@ -170,13 +187,14 @@ export default function App() {
                 </div>
                 <div className="space-y-3">
                   {sec.data.map((ex, exIdx) => {
-                    const allDone = sec.state[exIdx].every(Boolean);
+                    const stateArr = sec.state[exIdx] || [];
+                    const allDone = stateArr.length > 0 && stateArr.every(Boolean);
                     return (
                       <div key={exIdx} className={`p-3 rounded-xl border transition-colors ${allDone ? 'border-emerald-200 bg-emerald-50/50' : 'border-stone-100'}`}>
                         <div className="font-semibold text-sm text-stone-800">{ex.name}</div>
                         <div className="text-xs text-amber-600 font-medium mb-3 mt-0.5">{ex.sets} set &times; {ex.detail}</div>
                         <div className="flex flex-wrap gap-2">
-                          {sec.state[exIdx].map((isDone, setIdx) => (
+                          {stateArr.map((isDone, setIdx) => (
                             <button key={setIdx} onClick={() => {
                               const nd = { ...curData };
                               (nd as any)[sec.id][exIdx][setIdx] = !isDone;
