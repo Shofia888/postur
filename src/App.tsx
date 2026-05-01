@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { WEEKS, HABITS, RATINGS, RATING_LABELS, WeekData } from './data';
-import { Dumbbell, Calendar, BarChart2, Check, RefreshCw, X, Play, RotateCcw } from 'lucide-react';
+import { Dumbbell, Calendar, ChartBar, Check, RefreshCw, X, Play, RotateCcw } from 'lucide-react';
 
 const STORAGE_KEY = 'posture_v3';
 
@@ -354,7 +354,7 @@ export default function App() {
           <Calendar className="w-6 h-6" /> Kalender
         </button>
         <button onClick={() => setTab('ringkasan')} className={`flex flex-col items-center gap-1.5 p-2 transition-colors ${tab==='ringkasan' ? 'text-emerald-600' : 'text-stone-400'}`}>
-          <BarChart2 className="w-6 h-6" /> Ringkasan
+          <ChartBar className="w-6 h-6" /> Ringkasan
         </button>
       </nav>
     </div>
